@@ -1,3 +1,4 @@
+# Gets reference data for usda export sales data.
 import requests
 import json
 import os
@@ -8,7 +9,8 @@ urls = {
     "commodities": "https://apps.fas.usda.gov/OpenData/api/esr/commodities",
     "units": "https://apps.fas.usda.gov/OpenData/api/esr/unitsOfMeasure",
     "regions": "https://apps.fas.usda.gov/OpenData/api/esr/regions",
-    "countries": "https://apps.fas.usda.gov/OpenData/api/esr/countries"
+    "countries": "https://apps.fas.usda.gov/OpenData/api/esr/countries",
+    "data_release_dates": "https://apps.fas.usda.gov/OpenData/api/esr/datareleasedates"
        }
 
 headers = {"API_KEY": USDA_API_KEY,
