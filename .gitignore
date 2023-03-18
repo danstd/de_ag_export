@@ -1,0 +1,6 @@
+*.txt
+*.csv
+*.json
+/.ipynb_checkpoints
+/eia_env
+/.git
