@@ -5,3 +5,8 @@
 /eia_env
 /.git
 /__pycache__
+*.hcl
+*.backup
+*.tfstate
+.terraform/**
+*.exe

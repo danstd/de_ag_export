@@ -3,8 +3,13 @@ import requests
 import json
 import os
 import pandas as pd
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from prefect import flow, task
+from prefect.tasks import task_input_hash
+from prefect_gcp.cloud_storage import GcsBucket
+from prefect_gcp import GcpCredentials
+from datetime import timedelta
+
 
 class USDAReader():
 
@@ -30,10 +35,16 @@ class USDAReader():
 
         return 0
 
+# Write files from local storage to Google cloud bucket.
+@task()
+def gcs_data_write(from_path: Path, to_path: Path=None) -> None:
+    gcs_block = GcsBucket.load("de-ag-block")
+    gcs_block.upload_from_folder(from_folder=from_path, to_folder=to_path)
+    return
 
 # Retrieve reference data to local storage.
 @task(log_prints=True, retries=3)
-def reference_data_get():
+def reference_data_get() -> list:
     urls = {
         "commodities": "https://apps.fas.usda.gov/OpenData/api/esr/commodities",
         "units": "https://apps.fas.usda.gov/OpenData/api/esr/unitsOfMeasure",
@@ -41,20 +52,23 @@ def reference_data_get():
         "countries": "https://apps.fas.usda.gov/OpenData/api/esr/countries"
         }
 
+    REF_PATH = Path(__file__).parent.resolve() / "ref"
     usda_reader = USDAReader()
     for k, v in urls.items():
-        usda_reader.read(url=v, output_name=k)
+        usda_reader.read(url=v, output_name=k, output_path=REF_PATH)
+    return list(urls.keys())
 
-# retrieve most recent data release dates for commodities and market years
+# Retrieve most recent data release dates for commodities and market years
 @task(log_prints=True, retries=3)
-def data_date_get():
+def data_date_get() -> None:
     drd = "https://apps.fas.usda.gov/OpenData/api/esr/datareleasedates"
     usda_reader = USDAReader()
     usda_reader.read(url=drd, output_name="data_release_dates")
+    return
 
 # Reads new data release dates from local storage,
 @task(log_prints=True, retries=3)
-def data_release_date():
+def data_release_date() -> pd.DataFrame:
     drd = pd.read_json("data_release_dates.json")
     #date_cols=["marketYearStart", "marketYearEnd", "releaseTimeStamp"]
     used_cols=["commodityCode", "marketYear", "releaseTimeStamp"]
@@ -71,14 +85,12 @@ def data_release_date():
         return drd[used_cols]
     
     p_drd.rename(columns={"releaseTimeStamp": "previousReleaseTimeStamp"}, inplace=True)
-
     drd = drd.merge(right=p_drd, on=["commodityCode", "marketYear"], how="left")
-
     return drd.loc[drd["releaseTimeStamp"] != drd["previousReleaseTimestamp"], ["commodityCode", "marketYear"]]
 
 # Main commodity data function.
 @task(log_prints=True, retries=3)
-def commodity_data_get(commodity_years: pd.DataFrame):
+def commodity_data_get(commodity_years: pd.DataFrame) -> None:
     DATA_PATH = Path(__file__).parent.resolve() / "data"
     usda_reader = USDAReader()
     for index, row in commodity_years.iterrows():
@@ -86,20 +98,30 @@ def commodity_data_get(commodity_years: pd.DataFrame):
         year = row["marketYear"]
         url = f"https://apps.fas.usda.gov/OpenData/api/esr/exports/commodityCode/{cc}/allCountries/marketYear/{year}"
         usda_reader.read(url=url, output_name=f"{cc}_{year}", output_path=DATA_PATH)
+    return
 
 
 
 # Get reference data and data release dates
 @flow()
-def usda_ref_data_get():
-    reference_data_get()
+def usda_ref_data_get() -> None:
     data_date_get()
+    refs = reference_data_get()
+    from_path = Path(__file__).parent.resolve() / Path("ref")
+    #to_path = PurePosixPath("ref")
+    gcs_data_write(from_path=from_path, to_path=None)
+
+    return
 
 # Get commodity data.
 @flow()
-def commodity_data():
+def commodity_data() -> None:
     commodity_years = data_release_date()
     commodity_data_get(commodity_years=commodity_years)
+    from_path = Path(__file__).parent.resolve() / Path("data")
+    #to_path = PurePosixPath("data")
+    gcs_data_write(from_path=from_path, to_path=None)
 
 if __name__ == "__main__":
     usda_ref_data_get()
+    commodity_data()
