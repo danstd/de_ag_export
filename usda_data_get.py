@@ -114,7 +114,12 @@ def commodity_data_get(commodity_years: pd.DataFrame) -> None:
 # Create external BigQuery table using commodity json files.
 @task(log_prints=True, retries=3)
 def commodity_external_table_create() -> None:
-    bigquery_warehouse_block = BigQueryWarehouse.load("bq-de-ag-block")
+    with open("external_commodity_data_ddl.sql", "r") as r:
+        sql = r.read()
+
+    with BigQueryWarehouse.load("bq-de-ag-block") as warehouse:
+        operation = sql
+        warehouse.execute(operation)
 
 # Get reference data and data release dates
 @flow()
@@ -146,6 +151,8 @@ def commodity_data() -> None:
         commodity_years.drop(columns=["previousReleaseTimeStamp"], inplace=True)
     commodity_years.to_csv("previous_data_release_dates.csv", index=False)
 
+    commodity_external_table_create()
+    
 if __name__ == "__main__":
     #usda_ref_data_get()
     commodity_data()
