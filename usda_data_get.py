@@ -113,11 +113,12 @@ def commodity_data_get(commodity_years: pd.DataFrame) -> None:
 
 # Create external BigQuery table using commodity json files.
 @task(log_prints=True, retries=3)
-def commodity_external_table_create() -> None:
+def commodity_data_external_table_create() -> None:
+    gcp_credentials_block = GcpCredentials.load("de-z-camp-gcp-credentials")
     with open("external_commodity_data_ddl.sql", "r") as r:
         sql = r.read()
 
-    with BigQueryWarehouse.load("bq-de-ag-block") as warehouse:
+    with BigQueryWarehouse(gcp_credentials=gcp_credentials_block).load("bq-de-ag-block") as warehouse:
         operation = sql
         warehouse.execute(operation)
 
@@ -138,12 +139,17 @@ def commodity_data() -> None:
     commodity_years = data_release_date()
     commodity_data_get(commodity_years=commodity_years.loc[
         (~commodity_years["releaseTimeStamp"].isna()) &
-        (commodity_years["releaseTimeStamp"] != commodity_years["previousReleaseTimestamp"]),
+        (commodity_years["releaseTimeStamp"] != commodity_years["previousReleaseTimeStamp"]),
         ["commodityCode", "marketYear"]]
         )
     from_path = Path(__file__).parent.resolve() / Path("data")
     #to_path = PurePosixPath("data")
     gcs_data_write(from_path=from_path, to_path=None)
+
+    # Remove parquest files from Data path after successful write to google cloud.
+    commodity_year_files = Path(from_path).glob("commodity_*.parquet")
+    for file in commodity_year_files:
+        os.remove(file)
 
     # Write commodity-year data to record retrieved commodity data.
     if "previousReleaseTimeStamp" in commodity_years.columns:
@@ -151,8 +157,8 @@ def commodity_data() -> None:
         commodity_years.drop(columns=["previousReleaseTimeStamp"], inplace=True)
     commodity_years.to_csv("previous_data_release_dates.csv", index=False)
 
-    commodity_external_table_create()
-    
+    commodity_data_external_table_create()
+
 if __name__ == "__main__":
     #usda_ref_data_get()
     commodity_data()
