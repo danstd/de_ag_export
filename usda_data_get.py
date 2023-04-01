@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 from prefect import flow, task
 from prefect.tasks import task_input_hash
 from prefect_gcp.cloud_storage import GcsBucket
-from prefect_gcp.bigquery import BigQueryWarehouse
+# from prefect_gcp.bigquery import BigQueryWarehouse
 from prefect_gcp import GcpCredentials
 import schema_to_pd_dtype
 
@@ -111,16 +111,6 @@ def commodity_data_get(commodity_years: pd.DataFrame) -> None:
         commodity.to_parquet(DATA_PATH / f"commodity_{cc}_{year}.parquet")
     return
 
-# Create external BigQuery table using commodity json files.
-@task(log_prints=True, retries=3)
-def commodity_data_external_table_create() -> None:
-    gcp_credentials_block = GcpCredentials.load("de-z-camp-gcp-credentials")
-    with open("external_commodity_data_ddl.sql", "r") as r:
-        sql = r.read()
-
-    with BigQueryWarehouse(gcp_credentials=gcp_credentials_block).load("bq-de-ag-block") as warehouse:
-        operation = sql
-        warehouse.execute(operation)
 
 # Get reference data and data release dates
 @flow()
@@ -157,7 +147,6 @@ def commodity_data() -> None:
         commodity_years.drop(columns=["previousReleaseTimeStamp"], inplace=True)
     commodity_years.to_csv("previous_data_release_dates.csv", index=False)
 
-    commodity_data_external_table_create()
 
 if __name__ == "__main__":
     #usda_ref_data_get()

@@ -1,0 +1,148 @@
+
+version: 2
+
+sources:
+    - name: staging
+      #For bigquery:
+      database: de-z-camp
+
+      # For postgres:
+      #database: production
+
+      schema: de_ag
+
+      # loaded_at_field: record_loaded_at
+      tables:
+        - name: external_commodity_data
+        - name: external_commodity_ref
+        - name: external_country_ref
+        - name: external_region_ref
+        - name: external_unit_ref
+         # freshness:
+           # error_after: {count: 6, period: hour}
+
+# https://apps.fas.usda.gov/opendataweb/home
+models:
+    - name: stg_commodity_data
+      description: >
+        Holds records of amounts of a commodity exported from the U.S. by Market Year
+      columns:
+          - name: commodityCode
+            description: Code for commodity being exported. Codes listed in commodity_ref. Composite primary key along with countryCode and weekEndingDate.
+            tests:
+              - relationships:
+                  to: ref('stg_unit_ref')
+                  field: UnitId
+                  severity: warn
+              - not_null:
+                    severity: warn
+          - name: countryCode 
+            description: Code for country commodity is being exported to. Codes listed in country_ref. Composite primary key along with commodityCode and weekEndingDate.
+          - name: weeklyExports 
+            description: Count of total exports in week.
+          - name: accumulatedExports 
+            description: Export total for market year by week of this record.
+          - name: outstanding_sales 
+            description: Count of export sales currently outstanding.
+          - name: grossNewSales 
+            description: Export total for week of this record
+          - name:  currentMYNetSales
+            description: Net sales total for market year by week of this record.
+          - name:  currentMYTotalCommitment
+            description: Sales total including sales commitments for market year by week of this record.
+          - name:  nextMYOutstandingSales
+            description: Outstanding sales total for next market year by week of this record.
+          - name:  nextMYNetSales
+            description: Net sales total for next market year by week of this record.
+          - name:  unitId
+            description: Unit for amounts. Codes listed in unit_ref.
+          - name: weekendingDate
+            description: Week of record. Composite primary key along with countryCode and commodityCode.
+            tests:
+              - relationships:
+                  to: ref('taxi_zone_lookup')
+                  field: locationid
+                  severity: warn
+
+
+    - name: stg_commodity_ref
+      description: > 
+        Reference list of exporting commodities.
+      columns:
+          - name: commodityCode
+            description: Primary key for this table, unique code per commodity.
+            tests:
+                - unique:
+                    severity: warn
+                - not_null:
+                    severity: warn
+          - name: commodityName 
+            description: Commodity's name.
+          - name: unitId 
+            description: ID for standard unit for the commodity.
+            tests:
+              - relationships:
+                  to: ref('stg_unit_ref')
+                  field: UnitId
+                  severity: warn
+              - not_null:
+                    severity: warn
+
+
+    - name: stg_country_ref
+      description: > 
+        Reference list of export destination countries.
+      columns:
+          - name: countryCode
+            description: Primary key for this table, unique code per country.
+            tests:
+                - unique:
+                    severity: warn
+                - not_null:
+                    severity: warn
+          - name: countryName 
+            description: Country's name.
+          - name: description 
+            description: Country description.
+          - name: regionId
+            description: Code for country's region. Codes listed in region_ref.
+            tests:
+              - relationships:
+                  to: ref('stg_region_ref')
+                  field: regionId
+                  severity: warn
+              - not_null:
+                    severity: warn
+          - name: gencCode
+            description: Geopolitical Entities, Names, and Codes (GENC) code value.
+
+    - name: stg_region_ref
+      description: > 
+        Reference list of export destination country regions.
+      columns:
+          - name: regionId
+            description: Primary key for this table, unique code per region.
+            tests:
+                - unique:
+                    severity: warn
+                - not_null:
+                    severity: warn
+          - name: regionName 
+            description: Region's name.
+
+
+    - name: stg_unit_ref
+      description: > 
+        Reference list of valid export units.
+      columns:
+          - name: unitId
+            description: Primary key for this table, unique code per unit.
+            tests:
+                - unique:
+                    severity: warn
+                - not_null:
+                    severity: warn
+          - name: unitName
+            description: Unit's name.
+
+
