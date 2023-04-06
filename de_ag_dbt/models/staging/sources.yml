@@ -43,21 +43,21 @@ models:
           - name: regionName 
             description: Region's name.
           - name: weeklyExports 
-            description: Count of total exports in week.
+            description: Sum of total exports in week (units given by unitID).
           - name: accumulatedExports 
-            description: Export total for market year by week of this record.
+            description: Sum of weeklyExports for market year by the week of this record.
           - name: outstanding_sales 
-            description: Count of export sales currently outstanding.
+            description: Count of export sales currently outstanding (units given by unitID).
           - name: grossNewSales 
-            description: Export total for week of this record
+            description: Export total for week of this record (units given by unitID).
           - name:  currentMYNetSales
-            description: Net sales total for market year by week of this record.
+            description: Net sales total for market year by week of this record (units given by unitID).
           - name:  currentMYTotalCommitment
             description: Sales total including sales commitments for market year by week of this record.
           - name:  nextMYOutstandingSales
-            description: Outstanding sales total for next market year by week of this record.
+            description: Outstanding sales total for next market year by week of this record (units given by unitID).
           - name:  nextMYNetSales
-            description: Net sales total for next market year by week of this record.
+            description: Net sales total for next market year by week of this record (units given by unitID).
           - name:  unitId
             description: Unit for amounts. Codes listed in unit_ref.
           - name: unitName

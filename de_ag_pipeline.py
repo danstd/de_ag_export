@@ -113,7 +113,7 @@ def commodity_data_get(commodity_years: pd.DataFrame) -> None:
 
 
 # Get reference data and data release dates
-@flow()
+@flow
 def usda_ref_data_get(subdirectory: str="ref") -> None:
     data_date_get()
     refs = reference_data_get(subdirectory=subdirectory)
@@ -124,7 +124,7 @@ def usda_ref_data_get(subdirectory: str="ref") -> None:
     return
 
 # Get commodity data.
-@flow()
+@flow
 def commodity_data() -> None:
     commodity_years = data_release_date()
     commodity_data_get(commodity_years=commodity_years.loc[
@@ -147,7 +147,12 @@ def commodity_data() -> None:
         commodity_years.drop(columns=["previousReleaseTimeStamp"], inplace=True)
     commodity_years.to_csv("previous_data_release_dates.csv", index=False)
 
-
+# Main flow function.
+@flow
+def de_ag_flow() -> None:
+    usda_ref_data_get()
+    commodity_data()       
+    return 
+    
 if __name__ == "__main__":
-    #usda_ref_data_get()
-    commodity_data()
+    de_ag_flow()

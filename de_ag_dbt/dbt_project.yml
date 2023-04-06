@@ -41,4 +41,5 @@ models:
 
 
 vars:
-  is_test_run: true
+  is_test_run: false
+  lb_to_mt: 0.0004535924

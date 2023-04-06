@@ -1,0 +1,7 @@
+version: 2
+
+seeds: 
+  - name: commodity_categories
+    description: >
+      Manually categorized commodities.
+            

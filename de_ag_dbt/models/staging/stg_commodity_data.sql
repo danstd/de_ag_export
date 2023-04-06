@@ -5,7 +5,7 @@ select
     commodity_data.commodityCode,
     coalesce(commodity_ref.commodityName, 'No Commodity Name') as commodityName,
     commodity_data.countryCode,
-    coalesce(country_ref.countryName, 'No Country Name') as countryName,
+    coalesce(country_ref.countryDescription, 'No Country Name') as countryName,
     region_ref.regionId,
     coalesce(region_ref.regionName, 'No region Name') as regionName,
     commodity_data.weeklyExports,
