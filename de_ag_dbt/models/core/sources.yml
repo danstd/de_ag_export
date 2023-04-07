@@ -9,6 +9,12 @@ models:
   - name: dim_commodity_year
     description: >
       Aggregated table of all exports for commodities grouped into larger categories for each year.
+      Only commodities where exports can be given in metric tons are included.
+
+  - name: dim_country_year
+    description: >
+      Aggregated table of all exports grouped by country.
+      Only commodities where exports can be given in metric tons are included.
 
   - name: fact_commodity_country_week_data
     description: Records for each commodity, country, and week.
