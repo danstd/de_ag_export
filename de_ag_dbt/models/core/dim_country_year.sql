@@ -1,7 +1,7 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table',
+    cluster_by = ["countryName", "reportingYear"]) }}
 
 
- 
  select 
     countryName,
     reportingYear,

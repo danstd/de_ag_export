@@ -1,7 +1,6 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table',
+    cluster_by = "category") }}
 
-
- 
  select 
     category,
     weekendingDate,
