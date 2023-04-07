@@ -17,3 +17,5 @@ A dashboard has been set up using Looker Studio to visualize exports in metric t
 - DBT core installation is required
 
 - All DBT files are stored in the *de_ag_dbt* directory.
+
+- Data warehouse tables are clustered by commodity, country, and year as applicable.
