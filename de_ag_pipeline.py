@@ -6,6 +6,7 @@ import os
 import pandas as pd
 from pathlib import Path, PurePosixPath
 from prefect import flow, task
+from prefect_dbt.cli import DbtCliProfile, DbtCoreOperation
 from prefect.tasks import task_input_hash
 from prefect_gcp.cloud_storage import GcsBucket
 # from prefect_gcp.bigquery import BigQueryWarehouse
@@ -147,11 +148,45 @@ def commodity_data() -> None:
         commodity_years.drop(columns=["previousReleaseTimeStamp"], inplace=True)
     commodity_years.to_csv("previous_data_release_dates.csv", index=False)
 
+
+# DBT flow
+# https://prefecthq.github.io/prefect-dbt/
+#@flow
+#def trigger_dbt_flow() -> str:
+#    DBT_PATH = Path(os.getcwd()) / "de_ag_dbt"
+#    PROFILE_PATH = DBT_PATH / "profiles.yml"
+#    result = DbtCoreOperation(
+#        commands=["dbt run"],
+#        project_dir=DBT_PATH,
+#        profiles_dir=PROFILE_PATH,
+#        overwrite_profiles=False
+#    ).run()
+#    return result
+
+# DBT flow
+# https://prefecthq.github.io/prefect-dbt/
+def trigger_dbt_flow():
+    DBT_PATH = Path(os.getcwd()) / "de_ag_dbt"
+    PROFILE_PATH = DBT_PATH / "profiles.yml"
+    dbt_cli_profile = DbtCliProfile.load("de-ag-dbt-profile-block")
+    with DbtCoreOperation(
+        commands=["dbt debug", "dbt run"],
+        project_dir=DBT_PATH,
+        profiles_dir=PROFILE_PATH,
+        dbt_cli_profile=dbt_cli_profile,
+    ) as dbt_operation:
+        dbt_process = dbt_operation.trigger()
+        # do other things before waiting for completion
+        dbt_process.wait_for_completion()
+        result = dbt_process.fetch_result()
+    return result
+
 # Main flow function.
 @flow
 def de_ag_flow() -> None:
-    usda_ref_data_get()
-    commodity_data()       
+    #usda_ref_data_get()
+    #commodity_data()
+    trigger_dbt_flow()     
     return 
     
 if __name__ == "__main__":
