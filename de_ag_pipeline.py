@@ -1,4 +1,5 @@
-# Gets reference data for usda export sales data.
+# This is the pipeline script for ELT of the USDA commodity data.
+
 from datetime import timedelta
 import requests
 import json
@@ -9,33 +10,20 @@ from prefect import flow, task
 from prefect_dbt.cli import DbtCliProfile, DbtCoreOperation
 from prefect.tasks import task_input_hash
 from prefect_gcp.cloud_storage import GcsBucket
-# from prefect_gcp.bigquery import BigQueryWarehouse
 from prefect_gcp import GcpCredentials
 import schema_to_pd_dtype
 
-
+# Class for reading data from USDA commodity export API.
 class USDAReader():
-
     def __init__(self):
         USDA_API_KEY = os.getenv("USDA_API_KEY")
         self.headers = {"API_KEY": USDA_API_KEY,"Accept": "application/json"}
 
-    #def read(self, url: str, output_name: str, output_path: Path=None) -> json:
     def read(self, url: str) -> json:
-
-        #if output_path is None:
-        #    output_string = f"{output_name}.json"
-        #else:
-        #    output_string = output_path / f"{output_name}.json"
-
         response = requests.get(url, headers=self.headers)
         if not response.ok:
             print(f"Bad response for {url}")
             raise ValueError
-        
-        #response_txt = json.loads(response.text)
-        #with open(output_string, "w") as w:
-        #    w.write(json.dumps(response_txt, indent=4)) 
         response_json = json.loads(response.content)
         return response_json
 
@@ -112,7 +100,6 @@ def commodity_data_get(commodity_years: pd.DataFrame) -> None:
         commodity.to_parquet(DATA_PATH / f"commodity_{cc}_{year}.parquet")
     return
 
-
 # Get reference data and data release dates
 @flow
 def usda_ref_data_get(subdirectory: str="ref") -> None:
@@ -121,7 +108,6 @@ def usda_ref_data_get(subdirectory: str="ref") -> None:
     from_path = Path(__file__).parent.resolve() / Path(subdirectory)
     #to_path = PurePosixPath("ref")
     gcs_data_write(from_path=from_path, to_path=None)
-
     return
 
 # Get commodity data.
@@ -137,7 +123,7 @@ def commodity_data() -> None:
     #to_path = PurePosixPath("data")
     gcs_data_write(from_path=from_path, to_path=None)
 
-    # Remove parquest files from Data path after successful write to google cloud.
+    # Remove parquet files from Data path after successful write to google cloud.
     commodity_year_files = Path(from_path).glob("commodity_*.parquet")
     for file in commodity_year_files:
         os.remove(file)
@@ -148,20 +134,6 @@ def commodity_data() -> None:
         commodity_years.drop(columns=["previousReleaseTimeStamp"], inplace=True)
     commodity_years.to_csv("previous_data_release_dates.csv", index=False)
 
-
-# DBT flow
-# https://prefecthq.github.io/prefect-dbt/
-#@flow
-#def trigger_dbt_flow() -> str:
-#    DBT_PATH = Path(os.getcwd()) / "de_ag_dbt"
-#    PROFILE_PATH = DBT_PATH / "profiles.yml"
-#    result = DbtCoreOperation(
-#        commands=["dbt run"],
-#        project_dir=DBT_PATH,
-#        profiles_dir=PROFILE_PATH,
-#        overwrite_profiles=False
-#    ).run()
-#    return result
 
 # DBT flow
 # https://prefecthq.github.io/prefect-dbt/
@@ -189,5 +161,6 @@ def de_ag_flow() -> None:
     trigger_dbt_flow()     
     return 
     
+
 if __name__ == "__main__":
     de_ag_flow()
