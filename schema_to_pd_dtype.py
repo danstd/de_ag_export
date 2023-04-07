@@ -1,3 +1,4 @@
+# This file contains helper functions for converting json schema files for the data sources to formats for Pandas.
 import json
 import pandas as pd
 
