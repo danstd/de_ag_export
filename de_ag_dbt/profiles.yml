@@ -1,0 +1,11 @@
+config: {}
+de_ag_dbt:
+  outputs:
+    prod:
+      keyfile: C:\Users\daniel\Documents\ag_export_project\de_ag_export\terraform\google_credentials.json
+      method: service-account
+      project: de-z-camp
+      schema: de_ag
+      threads: 4
+      type: bigquery
+  target: prod

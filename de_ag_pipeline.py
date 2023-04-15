@@ -61,7 +61,7 @@ def data_date_get() -> None:
     drd = "https://apps.fas.usda.gov/OpenData/api/esr/datareleasedates"
     usda_reader = USDAReader()
     json_response = usda_reader.read(url=drd)
-    with open("data_release_dates,json", "w") as w:
+    with open("data_release_dates.json", "w") as w:
             w.write(json.dumps(json_response, indent=4)) 
     return
 
@@ -138,7 +138,7 @@ def commodity_data() -> None:
 # DBT flow
 # https://prefecthq.github.io/prefect-dbt/
 def trigger_dbt_flow():
-    DBT_PATH = Path(os.getcwd()) / "de_ag_dbt"
+    DBT_PATH = Path(__file__).parent.parent.resolve() / "de_ag_dbt"
     PROFILE_PATH = DBT_PATH / "profiles.yml"
     dbt_cli_profile = DbtCliProfile.load("de-ag-dbt-profile-block")
     with DbtCoreOperation(
@@ -148,7 +148,6 @@ def trigger_dbt_flow():
         dbt_cli_profile=dbt_cli_profile,
     ) as dbt_operation:
         dbt_process = dbt_operation.trigger()
-        # do other things before waiting for completion
         dbt_process.wait_for_completion()
         result = dbt_process.fetch_result()
     return result
@@ -156,8 +155,8 @@ def trigger_dbt_flow():
 # Main flow function.
 @flow
 def de_ag_flow() -> None:
-    #usda_ref_data_get()
-    #commodity_data()
+    usda_ref_data_get()
+    commodity_data()
     trigger_dbt_flow()     
     return 
     

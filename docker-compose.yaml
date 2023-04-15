@@ -1,0 +1,70 @@
+version: '3'
+services:
+  dbt-bq-dtc:
+    build:
+      context: .
+      target: dbt-bigquery
+    image: dbt/bigquery
+    volumes:
+      #- .:/usr/app
+      #- ~/.dbt/:/root/.dbt/
+      - ./terraform/dbt_service_account_credentials.json:/.google/credentials/dbt_service_account_credentials.json
+      - "./Pipeline Files:/Pipeline Files:rw"
+      - "./de_ag_dbt:/de_ag_dbt:rw"
+    #network_mode: host
+
+# Below from https://github.com/rpeden/prefect-docker-compose/blob/main/docker-compose.yml
+  ### Prefect Server API and UI
+  server:
+    image: prefecthq/prefect:2.8.7-python3.10
+    restart: always
+    volumes:
+      #- prefect:/root/.prefect
+      - ./terraform/dbt_service_account_credentials.json:/.google/credentials/dbt_service_account_credentials.json
+      - ./terraform/google_credentials.json:/.google/credentials/google_credentials.json
+      - "./Pipeline Files:/Pipeline Files:rw"
+      - "./de_ag_dbt:/de_ag_dbt:rw"
+    entrypoint: ["prefect", "server"]
+    environment:
+      # If you want to access Prefect Server from anywhere other than the Docker host machine, you will need to change
+      # PREFECT_UI_URL to match the external hostname/IP used to load the  UI in your web browser.
+      - PREFECT_UI_URL=http://127.0.0.0:4200/api
+      - PREFECT_SERVER_API_HOST=0.0.0.0
+      #- PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://postgres:postgres@database:5432/prefect
+    ports:
+      - 4200:4200
+    profiles: ["server"]
+
+  ## Prefect Agent
+  agent:
+    image: prefecthq/prefect:2.8.7-python3.10
+    restart: always
+    entrypoint: ["prefect", "agent", "start", "-q", "YOUR_WORK_QUEUE_NAME"]
+    environment:
+      - PREFECT_API_URL=http://server:4200/api
+#       Use PREFECT_API_KEY if connecting the agent to Prefect Cloud
+#     - PREFECT_API_KEY=YOUR_API_KEY
+    profiles: ["agent"]
+
+  ### Prefect CLI
+  cli:
+    image: prefecthq/prefect:2.8.7-python3.11
+    entrypoint: "bash"
+    working_dir: "/root/flows"
+    volumes:
+      #- "./flows:/root/flows"
+      - "./Pipeline Files:/Pipeline Files:rw"
+      - "./de_ag_dbt:/de_ag_dbt:rw"
+    environment:
+      - PREFECT_API_URL=http://server:4200/api
+#       Use PREFECT_API_KEY to use the CLI to interact with Prefect Cloud
+#     - PREFECT_API_KEY=YOUR_API_KEY
+    profiles: ["cli"]
+      
+volumes:
+  prefect:
+  db:
+  minio:
+networks:
+  default:
+    name: prefect-network

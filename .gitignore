@@ -13,3 +13,4 @@
 *.parquet
 /logs
 *.pdf
+.env
