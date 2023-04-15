@@ -19,3 +19,7 @@ A dashboard has been set up using Looker Studio to visualize exports in metric t
 - All DBT files are stored in the *de_ag_dbt* directory.
 
 - Data warehouse tables are clustered by commodity, country, and year as applicable.
+
+
+
+[Pipeline diagram](static/de_ag_export_pipeline_diagram.png)
