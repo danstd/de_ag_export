@@ -21,5 +21,6 @@ A dashboard has been set up using Looker Studio to visualize exports in metric t
 - Data warehouse tables are clustered by commodity, country, and year as applicable.
 
 
-
-[Pipeline diagram](static/de_ag_export_pipeline_diagram.png)
+<p align="center">
+  <img src="static\de_ag_export_pipeline_diagram.png">
+</p>
